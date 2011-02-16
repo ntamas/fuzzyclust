@@ -1,0 +1,7 @@
+build
+fuzzyclust.tar.gz
+fuzzyclust-static.tar.gz
+fuzzyclust
+fuzzyclust-static
+
+*.swp

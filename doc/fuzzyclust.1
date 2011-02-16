@@ -1,0 +1,155 @@
+.mso www.tmac
+.TH "fuzzyclust" 1 "2007-07-17"
+.SH NAME
+fuzzyclust \- an algorithm for detecting fuzzy community structure in complex networks
+.SH SYNOPSIS
+.B fuzzyclust
+[\fB-c\fR \fIclusts\fR] [\fB-f\fR \fIfrequency\fR] [\fB-p\fR \fIthreshold\fR]
+[\fB-q\fR] [\fB-t\fR \fIthreshold\fR] [\fB-w\fR \fIweights\fR] \fIfilename\fR
+.SH DESCRIPTION
+Recent studies revealed that the graph models of many real-world
+phenomena exhibit an overlapping community structure, which is hard to
+grasp with the classical graph clustering methods where every vertex of
+the graph belongs to exactly one community. This program allows the user
+to discover overlapping communities in complex networks where the commitments
+of vertices towards the communities are quantified numerically. Every vertex
+is allowed to belong to multiple communities with different degrees of
+membership, represented by a single real value in the interval (0, 1) for
+each vertex-community pair. The membership vectors of the vertices are then
+optimized using gradient-based constrained optimization methods in order to
+make connected vertices similar and disconnected vertices dissimilar.
+
+The mathematical details of the algorithm have already been published in
+a paper (see the bottom of this man page for the exact reference), so only
+the strictly necessary concepts will be described here in detail. The
+central concept is the \fBmembership matrix\fR - a matrix where the
+intersection of row \fIi\fR and \fIj\fR gives the membership degree of
+vertex \fIi\fR in community \fIj\fR. The row sums of this matrix are equal
+to 1, while the column sums are the "sizes" of the communities. Row \fIi\fR
+of this matrix is called the \fBmembership vector\fR of vertex \fIi\fR.
+The \fBsimilarity\fR of two vertices is defined as the dot product of
+the corresponding rows of the membership matrix; in a probabilistic point
+of view, this can be thought of the probability of the two vertices being
+in the same community if they are in different communities individually
+according to the probabilities in their membership vectors. The algorithm
+strives to make the similarity of connected vertices close to 1 and to
+make the similarity of disconnected vertices close to zero.
+
+The quality of a partition is assessed with a measure called
+\fBfuzzy modularity\fR (see the paper for details). By default, the
+algorithm will start with two communities and whenever it converges,
+it adds a new community (a new degree of freedom) to the system and
+check if it results in an improved modularity. The algorithm stops when
+it cannot improve the fuzzy modularity any more by adding new communities.
+You can also request a predefined number of communities, but it will
+still start with two communities and split them until it reaches the
+desired number of communities.
+
+Like every gradient descent optimization method, this algorithm may get
+stuck in local minima during the optimization process. Though there are
+some measures in place that are designed to avoid this, it still happens,
+especially for somewhat larger networks. Therefore it is advised to
+restart the algorithm a few times and keep the partition that results in
+the best fuzzy modularity.
+
+.SH OPTIONS
+.TP
+.B \-c \fIclusts\fR
+specifies the desired number of communities. When this argument is omitted,
+the algorithm will try to determine the number of communities automatically.
+.TP
+.B \-f \fIfrequency\fR, \fB\-\-prune\-frequency \fIfrequency\fR
+sets the pruning frequency. When larger than zero, the algorithm will
+regularly prune the membership matrix by setting values less than a given
+threshold to zero. This tends to clean up the results a bit and sometimes
+results in better convergence. The default is zero (i.e., no pruning).
+The value of the argument refers to the number of steps after which the
+pruning is automatically done.
+.TP
+.B \-h\fR, \fB\-H\fR, \fB\-\-help
+shows a short or a not-so-short help message
+.TP
+.B \-p \fIthreshold\fR, \fB\-\-prune\-threshold \fIthreshold\fR
+sets the pruning threshold. Values in the membership matrix less than the
+threshold will be set to zero regularly after every given number of
+steps
+.TP
+.B \-q\fR, \fB\-\-quiet
+quiet mode: no status information will be printed, suitable for batch processing.
+.TP
+.B \-t \fIthreshold\fR, \fB\-\-dominance\-threshold \fIthreshold\fR
+sets the dominance threshold. This is used when producing the defuzzified
+(crisp) clustering in the output. A vertex is considered to belong to a given
+cluster if its membership value in that cluster is above the dominance threshold.
+When a vertex has only one such community, it is assigned uniquely that community,
+otherwise it will be considered a bridge and denoted by a dash in the output.
+The default is zero, which has a special meaning: every vertex will be assigned
+to the community with the largest membership degree.
+.TP
+.B \-w \fI[file]\fR, \fB\-\-weight\-file \fI[file]\fR
+specifies a file that contains the weights of each vertex pair. (Note that
+disconnected vertex pairs must also have weights: these correspond to the
+dissimilarity constraint assigned to them).
+
+.SH SUPPORTED FORMATS
+.IP "Edge list (.txt)" 4
+Edge list files must have the extension .txt, and must contain an even number of
+non-negative integers, separated by whitespace. The common one edge per line
+format is not required, but recommended for readability. Each pair of integers
+denote an edge between vertices identified by the corresponding integers. The
+direction of the edges is ignored.
+.IP "GraphML (.graphml)" 4
+GraphML is an XML-based file format for representing various types of graphs.
+Nested graphs and hyperedges are not supported. For the specification of the
+GraphML format, see <http://graphml.graphdrawing.org/>. Note that directed
+GraphML graphs are converted to undirected.
+.IP "GML (.gml)" 4
+GML is a simple textual format, see <http://www.infosun.fim.uni-passau.de/Graphlet/GML/>
+for details. Directed GML graphs are converted to undirected.
+.IP "NCOL (.ncol)" 4
+NCOL is a line-based textual file format for representing named (and optionally
+weighted) edge lists. This format is used primarily by the Large Graph Layout
+program, see <http://bioinformatics.icmb.utexas.edu/lgl/> for details of the file format.
+Edge weights and directions are ignored.
+.IP "LGL (.lgl)" 4
+LGL is a line-based textual file format for representing named (and optionally
+weighted) edge lists. This format is used primarily by the Large Graph Layout
+program, see <http://bioinformatics.icmb.utexas.edu/lgl/> for details of the
+file format. Edge weights and directions are ignored.
+.IP "Pajek (.net)" 4
+This format is used by the Pajek network analysis tool. The format is not
+very well documented, but probably most of the networks exported from Pajek
+can be read. Directed networks are silently converted to undirected, weights
+are ignored.
+
+.SH OUTPUT FORMAT
+The output is basically a tab-separated table with some extra header lines. Header
+lines start with a percentage sign (%). The header lines contain information about
+the name of the input file, the number of clusters, the value of the goal function
+being optimized and the fuzzy modularity. The next line after the header lines
+specify what each column in the rest of the output means. The first column
+is always the vertex ID, followed by the membership degrees in each of the
+clusters. The last four columns are the vertex degree, the ID of its dominant
+community, the number of relevant clusters and the bridgeness measure.
+The latter two measures quantify how "shared" a given vertex is among different
+clusters. The bridgeness measure is the standard deviation of the membership
+vector, appropriately renormalized s.t. zero bridgeness corresponds to the
+theoretically possible maximum deviation and bridgeness 1 corresponds to zero
+variance. It has been largely superseded by the number of relevant clusters,
+which is calculated as 2 raised to the power of the binary entropy of the membership
+vector. (This is also called the \fBperplexity\fR of the membership vector).
+Vertices close to having two or more relevant clusters can be considered as
+bridge vertices; vertices having almost as many relevant clusters as the total
+number of clusters in the final result can be considered as outliers.
+
+.SH CITATION
+If you are using this program for research purposes, please cite the following
+paper in your publication:
+.P
+T. Nepusz, A. Petroczi, L. Negyessy, F. Bazso: Fuzzy communities and the
+concept of bridgeness in complex networks. Phys Rev E 77:016107, 2008.
+.SH BUGS
+No known bugs yet, but be prepared for strange behaviour, since the program is only
+in beta stage :)
+.SH AUTHOR
+Tamas Nepusz <ntamas@rmki.kfki.hu>
