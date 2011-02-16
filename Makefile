@@ -1,8 +1,10 @@
 IGRAPH_CFLAGS=$(shell pkg-config igraph --cflags)
-IGRAPH_LDFLAGS=$(shell pkg-config igraph --libs) -lxml2 -lz -lm
+IGRAPH_LDFLAGS=$(shell pkg-config igraph --libs)
+STATIC_IGRAPH_LDFLAGS=$(shell pkg-config igraph --libs --static)
 
 CFLAGS=$(IGRAPH_CFLAGS) -g -Wall -O3
 LDFLAGS=$(IGRAPH_LDFLAGS)
+STATIC_LDFLAGS=$(STATIC_IGRAPH_LDFLAGS)
 
 BINARY=fuzzyclust
 STATIC_BINARY=$(BINARY)-static
@@ -21,7 +23,7 @@ prepare:
 $(BINARY): $(TARGETS)
 	$(CC) -o $@ $(LDFLAGS) $<
 $(STATIC_BINARY): $(TARGETS)
-	$(CC) -static -static-libgcc -o $@ $< $(LDFLAGS)
+	$(CC) -static -static-libgcc -o $@ $< $(STATIC_LDFLAGS)
 
 dist:
 	tar -cvvzf $(BINARY).tar.gz $(DIST)
