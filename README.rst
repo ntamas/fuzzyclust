@@ -15,18 +15,11 @@ many local minima. The algorithm tries its best to climb out of those.
 Requirements
 ------------
 
-- igraph_ 0.6 or later. Note that 0.6 is the development version at the time of
-  writing, so you have to compile igraph_ yourself from the latest `nightly
-  snapshot`_ (even if you have installed 0.5.* on your machine beforehand from
-  the official repository).  Alternatively, you may tweak the source code to
-  work with 0.5; the algorithm itself does not use anything specific from 0.6
-  but the code itself is adapted to API changes between 0.5 and 0.6; you simply
-  have to undo those in the most straightforward way.
+- igraph_ 0.6 or later (the C library of course).
 
 - ``gcc`` and ``make`` of course.
 
-.. _igraph: http://igraph.sourceforge.net
-.. _Nightly snapshot: http://code.google.com/p/igraph
+.. _igraph: http://igraph.org/c/
 
 Usage
 -----
