@@ -48,6 +48,8 @@ typedef struct {
     long int prune_frequency;
     char* filename;
     char* weight_file;
+	unsigned int seed;
+	igraph_bool_t has_seed;
 } parameters_t;
 
 parameters_t params;              /* Global array for holding command line args */
@@ -1137,6 +1139,10 @@ void usage(int argc, char* argv[], igraph_bool_t long_help) {
     printf("        use the given target similarity assumption for the\n");
     printf("        vertices. SIMILARITY can be one of: adjacency (use the\n");
     printf("        adjacency matrix), jaccard (Jaccard similarity index)\n");*/
+	printf("    -S SEED, --seed SEED:\n");
+	printf("        use the given random SEED. Use this option to ensure that\n");
+	printf("        the results are the same on the same machine no matter how\n");
+	printf("        many times you run the executable.\n");
     printf("    -t THRESHOLD, --dominance-threshold THRESHOLD:\n");
     printf("        when determining dominant clusters for each vertex, a\n");
     printf("        cluster is considered dominant if the vertex belongs\n");
@@ -1164,6 +1170,7 @@ int process_command_line(int argc, char* argv[], parameters_t *params) {
         {"prune-frequency", required_argument, 0, 'f'},
         {"prune", required_argument, 0, 'p'},
         {"quiet", no_argument, 0, 'q'},
+		{"seed", required_argument, 0, 'S'},
         {"similarity", required_argument, 0, 's'},
         {"dominance-threshold", required_argument, 0, 't'},
         {"weight-file", optional_argument, 0, 'w'},
@@ -1171,6 +1178,8 @@ int process_command_line(int argc, char* argv[], parameters_t *params) {
     };
     params->no_of_clusters = 2;
     params->dominance_threshold = -1;
+	params->seed = 0;
+	params->has_seed = 0;
     params->prune_threshold = -1;
     params->prune_frequency = 0;
     params->verbosity = 1;
@@ -1178,7 +1187,7 @@ int process_command_line(int argc, char* argv[], parameters_t *params) {
     params->similarity_type = SIMILARITY_ADJACENCY;
     params->adaptive_cluster_count = 1;
 
-    while ((ch = getopt_long(argc, argv, "c:f:hHp:qs:t:w::", opts, &idx)) != -1) {
+    while ((ch = getopt_long(argc, argv, "c:f:hHp:qs:S:t:w::", opts, &idx)) != -1) {
         switch (ch) {
             case 'c':
                 /* Number of clusters */
@@ -1209,6 +1218,11 @@ int process_command_line(int argc, char* argv[], parameters_t *params) {
                 else
                   FATAL("unknown similarity type");
                 break;
+			case 'S':
+				/* Random seed */
+				params->seed = atoi(optarg);
+				params->has_seed = 1;
+				break;
             case 't':
                 params->dominance_threshold = atof(optarg);
                 break;
@@ -1254,10 +1268,10 @@ int main(int argc, char* argv[]) {
     clock_t start_time, end_time;
     igraph_real_t q, prev_q = -666;
 
-    srand(time(0));
-
     error_code=process_command_line(argc, argv, &params);
     if (error_code) return error_code;
+
+    srand(params.has_seed ? params.seed : time(0));
 
     /*IGRAPH_CHECK(igraph_small(&g, 5, 0, 0, 1, 0, 2, 1, 2, 2, 3, 2, 4, 3, 4,-1));*/
     if (strcmp(params.filename, "-"))

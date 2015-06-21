@@ -77,6 +77,11 @@ steps
 .B \-q\fR, \fB\-\-quiet
 quiet mode: no status information will be printed, suitable for batch processing.
 .TP
+.B \-S \fIseed\fR, \fB\-\-seed \fIseed\fR
+sets the seed value that is used to initialize the random number generator. Use
+this option to ensure that the algorithm always returns the same result on the
+same machine when executed multiple times.
+.TP
 .B \-t \fIthreshold\fR, \fB\-\-dominance\-threshold \fIthreshold\fR
 sets the dominance threshold. This is used when producing the defuzzified
 (crisp) clustering in the output. A vertex is considered to belong to a given
