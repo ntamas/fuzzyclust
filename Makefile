@@ -3,8 +3,8 @@ IGRAPH_LDFLAGS=$(shell pkg-config igraph --libs)
 STATIC_IGRAPH_LDFLAGS=$(shell pkg-config igraph --libs --static)
 
 CFLAGS=$(IGRAPH_CFLAGS) -g -Wall -O3
-LDFLAGS=$(IGRAPH_LDFLAGS)
-STATIC_LDFLAGS=$(STATIC_IGRAPH_LDFLAGS)
+LDFLAGS=$(IGRAPH_LDFLAGS) -lm
+STATIC_LDFLAGS=$(STATIC_IGRAPH_LDFLAGS) -lm
 
 BINARY=fuzzyclust
 STATIC_BINARY=$(BINARY)-static
@@ -21,7 +21,7 @@ prepare:
 	mkdir -p build
 
 $(BINARY): $(TARGETS)
-	$(CC) -o $@ $(LDFLAGS) $<
+	$(CC) -o $@ $< $(LDFLAGS)
 $(STATIC_BINARY): $(TARGETS)
 	$(CC) -static -static-libgcc -o $@ $< $(STATIC_LDFLAGS)
 
