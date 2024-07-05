@@ -15,7 +15,7 @@ many local minima. The algorithm tries its best to climb out of those.
 Requirements
 ------------
 
-- igraph_ 0.6 or later (the C library of course).
+- igraph_ 0.10 or later (the C library of course).
 
 - ``gcc`` and ``make`` of course.
 

@@ -105,8 +105,8 @@ typedef struct {
 	igraph_bool_t is_directed;    /* Is it a directed fuzzy clustering? */
     edge_t *edges;                /* Edge similarity spec. list of the graph */
     long int edge_count;          /* Length of the edge similarity specifications */
-    igraph_vector_t outdegrees;   /* Degree list of the graph */
-    igraph_vector_t indegrees;    /* Degree list of the graph */
+    igraph_vector_int_t outdegrees;   /* Degree list of the graph */
+    igraph_vector_int_t indegrees;    /* Degree list of the graph */
     long int k;                   /* Current number of clusters */
     state_t current;              /* Current state */
     state_t local_best;           /* Local best state, for adaptive cluster count */
@@ -362,9 +362,9 @@ void state_copy(state_t *dest, const state_t *src) {
     dest->k = src->k;
     dest->goal = src->goal;
 	dest->is_directed = src->is_directed;
-    igraph_matrix_copy(&dest->u, &src->u);
+    igraph_matrix_update(&dest->u, &src->u);
 	if (src->is_directed) {
-		igraph_matrix_copy(&dest->v, &src->v);
+		igraph_matrix_update(&dest->v, &src->v);
 	}
     memcpy(dest->self_sims, src->self_sims, sizeof(igraph_real_t)*dest->n);
 }
@@ -452,12 +452,13 @@ int fuzzy_clustering_init(fuzzy_clustering_t *f, const igraph_t *g, int numcl,
     IGRAPH_CHECK(state_init(&f->local_best,igraph_vcount(g),f->k,f->is_directed));
     IGRAPH_FINALLY(state_destroy, &f->local_best);
 
-    IGRAPH_VECTOR_INIT_FINALLY(&f->indegrees, 0);
-    IGRAPH_VECTOR_INIT_FINALLY(&f->outdegrees, 0);
+    IGRAPH_VECTOR_INT_INIT_FINALLY(&f->indegrees, 0);
+    IGRAPH_VECTOR_INT_INIT_FINALLY(&f->outdegrees, 0);
 
     /* Store degrees */
-    igraph_degree(g, &f->outdegrees, igraph_vss_all(), IGRAPH_OUT, 0);
-	igraph_degree(g, &f->indegrees, igraph_vss_all(), IGRAPH_IN, 0);
+    IGRAPH_CHECK(igraph_degree(g, &f->outdegrees, igraph_vss_all(), IGRAPH_OUT, 0));
+	IGRAPH_CHECK(igraph_degree(g, &f->indegrees, igraph_vss_all(), IGRAPH_IN, 0));
+
     /* Calculate edge list */
     if (params.weight_file) {
         /* pre-specified weights */
@@ -500,7 +501,7 @@ int fuzzy_clustering_init(fuzzy_clustering_t *f, const igraph_t *g, int numcl,
                 if (i == j) continue;
                 if (k == 2) w = 1.0;
 				if (w > maxw) maxw = w;
-                igraph_are_connected(f->graph, i, j, &b);
+                igraph_are_adjacent(f->graph, i, j, &b);
                 f->edges[n].src=i;
                 f->edges[n].dst=j;
                 f->edges[n].weight=(igraph_real_t)w;
@@ -588,7 +589,7 @@ int fuzzy_clustering_init(fuzzy_clustering_t *f, const igraph_t *g, int numcl,
         m = igraph_ecount(g);
 		if (!f->is_directed) m *= 2;
         for (k=0; k < f->edge_count; k++) {
-            f->edges[k].weight = sqr(f->edges[k].target - (VECTOR(f->outdegrees)[f->edges[k].src] * VECTOR(f->indegrees)[f->edges[k].dst]) / ((float)m));
+            f->edges[k].weight = sqr(f->edges[k].target - (((igraph_real_t)VECTOR(f->outdegrees)[f->edges[k].src]) * VECTOR(f->indegrees)[f->edges[k].dst]) / m);
         }
     }
 
@@ -645,19 +646,15 @@ igraph_real_t fuzzy_clustering_simple_goal_function(const fuzzy_clustering_t *f)
 igraph_real_t fuzzy_clustering_modularity(const fuzzy_clustering_t *f) {
     igraph_real_t result = 0.0;
 	edge_t *e;
-    long int i, k, n, m;
-	const membership_matrix_t *u, *v;
+    long int i, n, m;
 
     m = igraph_ecount(f->graph);
 	if (!f->is_directed) m *= 2;
     n = igraph_vcount(f->graph);
-    k = 0;
-	u = &f->current.u;
-	v = f->is_directed ? &(f->current.v) : &(f->current.u);
     n = f->edge_count;
     for (i=0, e=f->edges; i<n; i++, e++) {
         if (e->src == e->dst) continue;
-        result += (e->target - VECTOR(f->outdegrees)[e->src] * VECTOR(f->indegrees)[e->dst] / m) * e->similarity;
+        result += (e->target - ((igraph_real_t)(VECTOR(f->outdegrees)[e->src]) * VECTOR(f->indegrees)[e->dst]) / m) * e->similarity;
     }
     result /= m;
     return result; 
@@ -881,12 +878,11 @@ int fuzzy_clustering_add_community(fuzzy_clustering_t *f, long int n) {
 }
 
 int fuzzy_clustering_remove_empty_communities(fuzzy_clustering_t *f, double eps) {
-	int i, j, n, k;
+	int i, j, k;
 	igraph_vector_t community_sizes;
 	int* remapping;
 
 	k = f->k;
-	n = f->current.n;
 
 	IGRAPH_VECTOR_INIT_FINALLY(&community_sizes, f->k);
 	IGRAPH_CHECK(membership_matrix_get_community_sizes(&f->current.u, &community_sizes));
@@ -1082,8 +1078,8 @@ void fuzzy_clustering_destroy(fuzzy_clustering_t *f) {
     state_destroy(&f->current);
     state_destroy(&f->best);
     state_destroy(&f->local_best);
-    igraph_vector_destroy(&f->outdegrees);
-    igraph_vector_destroy(&f->indegrees);
+    igraph_vector_int_destroy(&f->outdegrees);
+    igraph_vector_int_destroy(&f->indegrees);
 }
 
 void usage(int argc, char* argv[], igraph_bool_t long_help) {
